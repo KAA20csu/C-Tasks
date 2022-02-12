@@ -7,12 +7,15 @@
 #include <tchar.h>
 #include <stdio.h>
 #include <strsafe.h>
+#include <iostream>
+#include <conio.h>
 using namespace std;
 using std::string;
 using std::cin;
 using std::cout;
 
 const char* fname1 = "test1.txt";
+
 class Person
 {
 public:
@@ -53,7 +56,7 @@ public:
     };
 
 };
-
+Person AllData[100];
 class Command
 {
 public:
@@ -117,8 +120,9 @@ public:
         CloseHandle(hFile);
         
     };
-    void ReadPerson()
+    void ReadData()
     {
+        int i = 0;
         Person p;
         HANDLE hFile = CreateFile(
             L"base.dat",
@@ -130,15 +134,134 @@ public:
             NULL);
         DWORD readedBytes;
 
-        if (ReadFile(
-            hFile,
-            (char*)&p,
-            sizeof(p), 
-            &readedBytes,
-            NULL
-        )) {
-            p.Print();
+        while (ReadFile(hFile, (char*)&p, sizeof(p), &readedBytes, NULL))
+        {
+            if (readedBytes != 0)
+            {
+                p.Print();
+                
+                AllData[i] = p;
+
+                i++;
+            }
+            else break;
         }
+
+        CloseHandle(hFile);
+    }
+
+    void ReadPerson(int i)
+    {
+        HANDLE hFile = CreateFile(
+            L"base.dat",
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+        AllData[i].Print();
+
+        _getch();
+    }
+
+    void EditPerson(int i)
+    {
+        HANDLE hFile = CreateFile(
+            L"base.dat",
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ,
+            NULL,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+        if (hFile == INVALID_HANDLE_VALUE)
+        {
+            cout << "Wait for access" << endl;
+            _getch();
+        }
+        else
+        {
+            Person p = AllData[i];
+            cout << "Введите номер поля, которое вы хотите изменить: " << endl;
+            int parameter;
+            cin >> parameter;
+
+            switch(parameter)
+            {
+            case 1:
+            {
+            cout << "Введите новое имя: " << endl;
+            string name_p;
+            cin >> name_p;
+            p.SetName(name_p);
+            break;
+            }
+            case 2:
+            {
+            cout << "Введите новое значение возраста: " << endl;
+            int age_p;
+            cin >> age_p;
+            p.SetAge(age_p);
+            break;
+            }
+            case 3:
+            {
+                cout << "Введите новое место работы: " << endl;
+                string wp_p;
+                cin >> wp_p;
+                p.SetWorkPlace(wp_p);
+                break;
+            }
+            case 4:
+            {
+                cout << "Введите новую дату рождения: " << endl;
+                string birth_p;
+                cin >> birth_p;
+                p.SetBirth(birth_p);
+                break;
+            }
+            case 5:
+            {
+                cout << "Введите новое значение з/п: " << endl;
+                int sal_p;
+                cin >> sal_p;
+                p.SetSalary(sal_p);
+                break;
+            }
+            }
+            AllData[i] = p;
+            CloseHandle(hFile);
+            UpdInfo();
+        }
+        _getch();
+    }
+    void UpdInfo()
+    {
+        //std::remove("base.dat");
+
+        HANDLE hFile = CreateFile(
+            L"base.dat",
+            GENERIC_WRITE,
+            FILE_SHARE_READ,
+            NULL,
+            TRUNCATE_EXISTING,
+            FILE_ATTRIBUTE_NORMAL,
+            NULL);
+        for (Person p : AllData) 
+        {
+            if (p.Age != 0)
+            {
+                DWORD bytesWritten;
+                WriteFile(
+                    hFile,
+                    (char*)&p,
+                    sizeof(Person),
+                    &bytesWritten,
+                    nullptr);
+            }
+        }
+        
         CloseHandle(hFile);
     }
 };
@@ -147,7 +270,28 @@ int main()
     setlocale(LC_ALL, "ru");
     Command c;
     c.CreateFileBase();
-    //c.CreateNewPerson();
-    c.ReadPerson();
+   // c.CreateNewPerson();
+    c.ReadData();
+    
+    cout << "Введите 1, если хотите прочесть анкету; Введите 2, если хотите редактировать анкету." << endl;
+    int command;
+    cin >> command;
+    switch(command)
+    {
+    case 1:
+        system("cls");
+        int id;
+        cout << "Введите номер анкеты, которую вы хотите просмотреть." << endl;
+        cin >> id;
+        c.ReadPerson(id);
+        break;
+    case 2:
+        system("cls");
+        int id1;
+        cout << "Введите номер анкеты, которую вы хотите редактировать." << endl;
+        cin >> id1;
+        c.EditPerson(id1);
+        break;
+    }
 }
 
