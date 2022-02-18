@@ -62,8 +62,8 @@ class Command
 public:
     void CreateFileBase()
     {
-        
-       HANDLE hFile = CreateFile(
+
+        HANDLE hFile = CreateFile(
             L"base.dat",
             GENERIC_WRITE,
             FILE_SHARE_READ,
@@ -72,7 +72,7 @@ public:
             FILE_ATTRIBUTE_NORMAL,
             NULL);
 
-       CloseHandle(hFile);
+        CloseHandle(hFile);
     }
     void CreateNewPerson()
     {
@@ -124,9 +124,9 @@ public:
             L"base.dat",
             GENERIC_READ,
             FILE_SHARE_READ,
-            NULL, 
+            NULL,
             OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,  
+            FILE_ATTRIBUTE_NORMAL,
             NULL);
         DWORD readedBytes;
 
@@ -139,7 +139,7 @@ public:
             }
             else break;
         }
-        
+
         CloseHandle(hFile);
     }
 
@@ -148,140 +148,135 @@ public:
         HANDLE hFile = CreateFile(
             L"base.dat",
             GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
             OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL,
             NULL);
-        if (hFile == INVALID_HANDLE_VALUE)
+        SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
+        OVERLAPPED ol;
+        ol.OffsetHigh = 0;
+        ol.Offset = sizeof(Person) * (i - 1);
+        ol.hEvent = NULL;
+        cout << "Wait for access.." << endl;
+        LockFileEx(hFile, 0, 0, sizeof(Person), 0, &ol);
+        Person p;
+        DWORD bytesWritten;
+        ReadFile(hFile,
+            (char*)&p,
+            sizeof(Person),
+            &bytesWritten,
+            nullptr);
+        p.Print();
+        cout << "Enter 1 if you want to see or edit other data" << endl;
+        int param;
+        cin >> param;
+        if (param == 1)
         {
-            cout << "Wait for access" << endl;
-            _getch();
+            CloseHandle(hFile);
             system("cls");
             Start();
-        }
-        else
-        {
-            SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
-            Person p;
-            DWORD bytesWritten;
-            ReadFile(hFile,
-                (char*)&p,
-                sizeof(Person),
-                &bytesWritten,
-                nullptr);
-            p.Print();
-            cout << "Enter 1 if you want to see or edit other data" << endl;
-            int param;
-            cin >> param;
-            if (param == 1)
-            {
-                CloseHandle(hFile);
-                system("cls");
-                Start();
-            }
         }
     }
 
     void EditPerson(int i)
     {
+        system("cls");
         HANDLE hFile = CreateFile(
             L"base.dat",
             GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
             OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL,
             NULL);
-        if (hFile == INVALID_HANDLE_VALUE)
+        SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
+        cout << "Wait for access.." << endl;
+        OVERLAPPED ol;
+        ol.OffsetHigh = 0;
+        ol.Offset = sizeof(Person) * (i - 1);
+        ol.hEvent = NULL;
+        LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, sizeof(Person), 0, &ol);
+        Person p;
+        DWORD bytesWritten;
+        ReadFile(hFile,
+            (char*)&p,
+            sizeof(Person),
+            &bytesWritten,
+            nullptr);
+
+        p.Print();
+
+        cout << "Введите номер поля, которое вы хотите изменить: " << endl;
+        int parameter;
+        cin >> parameter;
+        system("cls");
+        switch (parameter)
         {
-            cout << "Wait for access" << endl;
-            _getch();
+        case 1:
+        {
+            cout << "Введите новое имя: " << endl;
+            string name_p;
+            cin >> name_p;
+            p.SetName(name_p);
+            break;
+        }
+        case 2:
+        {
+            cout << "Введите новое значение возраста: " << endl;
+            int age_p;
+            cin >> age_p;
+            p.SetAge(age_p);
+            break;
+        }
+        case 3:
+        {
+            cout << "Введите новое место работы: " << endl;
+            string wp_p;
+            cin >> wp_p;
+            p.SetWorkPlace(wp_p);
+            break;
+        }
+        case 4:
+        {
+            cout << "Введите новую дату рождения: " << endl;
+            string birth_p;
+            cin >> birth_p;
+            p.SetBirth(birth_p);
+            break;
+        }
+        case 5:
+        {
+            cout << "Введите новое значение з/п: " << endl;
+            int sal_p;
+            cin >> sal_p;
+            p.SetSalary(sal_p);
+            break;
+        }
+        }
+        SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
+        WriteFile(
+            hFile,
+            (char*)&p,
+            sizeof(Person),
+            &bytesWritten,
+            nullptr);
+        cout << "Enter 1 if you want to see or edit other data; 0 if u would like to edit else" << endl;
+        int param;
+        cin >> param;
+        if (param == 1)
+        {
+            CloseHandle(hFile);
             system("cls");
             Start();
         }
         else
         {
-            Person p;
-            DWORD bytesWritten;
-            ReadFile(hFile,
-                (char*)&p,
-                sizeof(Person),
-                &bytesWritten,
-                nullptr);
-
-            p.Print();
-            cout << "Введите номер поля, которое вы хотите изменить: " << endl;
-            int parameter;
-            cin >> parameter;
-            SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
+            CloseHandle(hFile);
             system("cls");
-            switch(parameter)
-            {
-                case 1:
-                {
-                    cout << "Введите новое имя: " << endl;
-                    string name_p;
-                    cin >> name_p;
-                    p.SetName(name_p);
-                    break;
-                }
-                case 2:
-                {
-                    cout << "Введите новое значение возраста: " << endl;
-                    int age_p;
-                    cin >> age_p;
-                    p.SetAge(age_p);
-                    break;
-                }
-                case 3:
-                {
-                    cout << "Введите новое место работы: " << endl;
-                    string wp_p;
-                    cin >> wp_p;
-                    p.SetWorkPlace(wp_p);
-                    break;
-                }
-                case 4:
-                {
-                    cout << "Введите новую дату рождения: " << endl;
-                    string birth_p;
-                    cin >> birth_p;
-                    p.SetBirth(birth_p);
-                    break;
-                }
-                case 5:
-                {
-                    cout << "Введите новое значение з/п: " << endl;
-                    int sal_p;
-                    cin >> sal_p;
-                    p.SetSalary(sal_p);
-                    break;
-                }
-            }
-            SetFilePointer(hFile, sizeof(Person) * (i - 1), 0, FILE_BEGIN);
-            WriteFile(
-                hFile,
-                (char*)&p,
-                sizeof(Person),
-                &bytesWritten,
-                nullptr);
-            cout << "Enter 1 if you want to see or edit other data; 0 if u would like to edit else" << endl;
-            int param;
-            cin >> param;
-            if (param == 1)
-            {
-                CloseHandle(hFile);
-                system("cls");
-                Start();
-            }
-            else
-            {
-                CloseHandle(hFile);
-                system("cls");
-                EditPerson(parameter);
-            }
+            EditPerson(parameter);
         }
+
     }
     void Start()
     {
@@ -322,7 +317,7 @@ int main()
 {
     setlocale(LC_ALL, "ru");
     Command c;
-   // c.CreateNewPerson();
+    // c.CreateNewPerson();
     c.Start();
 }
 
