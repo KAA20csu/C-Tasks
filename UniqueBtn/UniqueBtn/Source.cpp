@@ -1,123 +1,147 @@
-// HelloWindowsDesktop.cpp
-// compile with: /D_UNICODE /DUNICODE /DWIN32 /D_WINDOWS /c
-
 #include <windows.h>
-#include <stdlib.h>
-#include <string.h>
-#include <tchar.h>
-static TCHAR szWindowClass[] = _T("DesktopApp");
-static TCHAR szTitle[] = _T("Windows Desktop Guided Tour Application");
-HWND hWnd, My;
-HINSTANCE hInst;
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+#include <stdio.h>
+#include <tchar.h> 
 
-int WINAPI WinMain(
-    _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance,
-    _In_ LPSTR     lpCmdLine,
-    _In_ int       nCmdShow
-)
+#include "resource.h"
+
+HWND w_hMainWnd, wnd;
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    WNDCLASSEX wcex;
-    WNDCLASSEX wcex2;
-    wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = WndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(wcex.hInstance, IDI_APPLICATION);
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
 
-    if (!RegisterClassEx(&wcex))
-    {
-        MessageBox(NULL,
-            _T("Call to RegisterClassEx failed!"),
-            _T("Windows Desktop Guided Tour"),
-            NULL);
+	char szClassName[] = ("OWNERDRAW");
+	MSG msg;
+	WNDCLASSEX wc;
 
-        return 1;
-    }
+	wc.cbSize = sizeof(wc);
+	wc.style = CS_HREDRAW | CS_VREDRAW;
+	wc.lpfnWndProc = WndProc;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hInstance = hInstance;
+	wc.hIcon = 0;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+	wc.lpszMenuName = 0;
+	wc.lpszClassName = szClassName;
+	wc.hIconSm = 0;
 
-    hInst = hInstance;
 
-    HWND hWnd = CreateWindowEx(
-        WS_EX_OVERLAPPEDWINDOW,
-        szWindowClass,
-        szTitle,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        500, 100,
-        NULL,
-        NULL,
-        hInstance,
-        NULL
-    );
+	if (!RegisterClassEx(&wc))
+	{
+		MessageBox(NULL, _T("Cannot register class"), _T("Error"), MB_OK);
+		return 0;
+	}
 
-    if (!hWnd)
-    {
-        MessageBox(NULL,
-            _T("Call to CreateWindow failed!"),
-            _T("Windows Desktop Guided Tour"),
-            NULL);
 
-        return 1;
-    }
+	w_hMainWnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, szClassName, "OWNERDRAW", WS_SYSMENU | WS_MINIMIZEBOX
+		, 300, 300, 330, 330,
+		(HWND)NULL, (HMENU)NULL, (HINSTANCE)hInstance, 0);
 
-    ShowWindow(hWnd,
-        nCmdShow);
-    UpdateWindow(hWnd);
 
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+	wnd = CreateWindow(_T("BUTTON"), 0, BS_OWNERDRAW | WS_CHILD | WS_VISIBLE,
+		100, 100, 120, 60, w_hMainWnd, (HMENU)NULL, hInstance, NULL);
 
-    return (int)msg.wParam;
+	ShowWindow(w_hMainWnd, nCmdShow);
+	UpdateWindow(w_hMainWnd);
+
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	return msg.wParam;
 }
 
-void MyButton(HWND& hwnd, HWND hParent)
+
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    hwnd = CreateWindow(L"button", L"Click", WS_CHILD | WS_VISIBLE ,
-        10,10,35,35, hParent, (HMENU)1001, NULL, NULL);
+	// ownerdraw button
+	static HBITMAP no_active;
+	static HBITMAP in_focus;
+	static HBITMAP select;
+	LPDRAWITEMSTRUCT pdis;
+	static BITMAP bm_owner;
+	static HDC hMemDcFrame, hDC_owner;
+	static HBRUSH hbrush;
 
-}
+	switch (msg)
+	{
+	case WM_DRAWITEM:
+	{
+		pdis = (LPDRAWITEMSTRUCT)lParam;
+		hDC_owner = CreateCompatibleDC(pdis->hDC);
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    COLORREF btncolor = RGB(16, 255, 200);
-    COLORREF btncolor1 = RGB(233, 255, 11);
-    switch (message)
-    {
+		switch (pdis->itemAction)
+		{
+		case ODA_FOCUS:
+			if (pdis->itemState & ODS_FOCUS)
+				SelectObject(hDC_owner, in_focus);
+			else
+				SelectObject(hDC_owner, no_active);
 
-    case WM_COMMAND:
-    {
-        if (LOWORD(wParam) == 1001)
-        {
-            //MessageBox(hWnd, L"Xyeta", L"Xyeta", MB_OK);
-            SetClassLong(hWnd, GCL_HBRBACKGROUND, (LONG)CreateSolidBrush(RGB(0, 255, 0)));
-            InvalidateRect(hWnd, NULL, TRUE);
-            return (INT_PTR)TRUE;
-            /*SetBkMode((HDC)wParam, TRANSPARENT);
-            return (LRESULT)CreateSolidBrush(btncolor);*/
-        }
-    }
-    case WM_CREATE:
-        MyButton(hWnd,hWnd);
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-        break;
-    }
+			break;
 
-    return 0;
+
+		case ODA_SELECT:
+			if (pdis->itemState & ODS_SELECTED)
+				SelectObject(hDC_owner, select);
+			break;
+
+		default:
+			SelectObject(hDC_owner, no_active);
+			break;
+		}
+
+		////////  ownerdraw button  ////////////////////////////////////////
+
+		FillRect(pdis->hDC, &pdis->rcItem, hbrush);
+		BitBlt(pdis->hDC, 0, 0, bm_owner.bmWidth, bm_owner.bmHeight, hDC_owner, 0, 0, SRCCOPY);
+
+		FrameRect(pdis->hDC, &pdis->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		DeleteDC(hDC_owner);
+		return true;
+
+	}
+
+	case WM_CREATE:
+		// ownerdraw button
+		no_active = LoadBitmap((HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), MAKEINTRESOURCE(IDB_BITMAP1));
+		in_focus = LoadBitmap((HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), MAKEINTRESOURCE(IDB_BITMAP2));
+		select = LoadBitmap((HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE), MAKEINTRESOURCE(IDB_BITMAP3));
+
+		GetObject(no_active, sizeof(bm_owner), (LPSTR)&bm_owner);
+		break;
+
+
+	case WM_DESTROY:
+
+		PostQuitMessage(0);
+		break;
+
+	case WM_SETCURSOR:  // отслеживание фокуса ввода для курсора мыши
+		if ((HWND)wParam == wnd)
+		{
+			SetFocus(wnd);
+			DeleteObject(hbrush);
+			hbrush = CreatePatternBrush(in_focus);
+		}
+
+		else if ((HWND)wParam != wnd)
+		{
+			SetFocus(w_hMainWnd);
+			DeleteObject(hbrush);
+			hbrush = CreatePatternBrush(no_active);
+		}
+		return false;
+
+	default:
+		return DefWindowProc(hWnd, msg, wParam, lParam);
+	}
+	return 0;
 }
